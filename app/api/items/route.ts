@@ -1,24 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import { connectDB } from '@/lib/db';
-import { Item } from '@/lib/models/Item';
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { connectDB } from "@/lib/db";
+import { Item } from "@/lib/models/Item";
 
 const createItemSchema = z.object({
-  name: z.string().min(1, 'Item name is required'),
+  name: z.string().min(1, "Item name is required"),
   description: z.string().optional(),
-  category: z.string().min(1, 'Category is required'),
-  unitPrice: z.number().min(0, 'Unit price must be 0 or greater'),
+  category: z.string().min(1, "Category is required"),
+  unitPrice: z.number().min(0, "Unit price must be 0 or greater"),
   unitPacking: z.string().optional(),
   hsnCode: z.string().optional(),
   gstRate: z.number().min(0).max(100).optional(),
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
 });
 
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
-  } catch (dbError) {
-    return NextResponse.json({ success: false, error: 'Database connection failed' }, { status: 500 });
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "Database connection failed" },
+      { status: 500 }
+    );
   }
 
   try {
@@ -33,7 +36,7 @@ export async function POST(request: NextRequest) {
       unitPacking: validatedData.unitPacking,
       hsnCode: validatedData.hsnCode,
       gstRate: validatedData.gstRate,
-      isActive: validatedData.isActive ?? true
+      isActive: validatedData.isActive ?? true,
     });
 
     await item.save();
@@ -41,10 +44,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data: item });
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ success: false, error: 'Invalid input data', details: error.errors }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Invalid input data", details: error.errors },
+        { status: 400 }
+      );
     }
-    const message = error instanceof Error ? error.message : 'Internal server error';
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json(
+      { success: false, error: message },
+      { status: 500 }
+    );
   }
 }
 
@@ -52,22 +62,25 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB();
   } catch {
-    return NextResponse.json({ success: false, error: 'Database connection failed' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Database connection failed" },
+      { status: 500 }
+    );
   }
 
   try {
     const { searchParams } = new URL(request.url);
-    const category = searchParams.get('category');
-    const search = searchParams.get('search');
-    const activeOnly = searchParams.get('activeOnly') === 'true';
+    const category = searchParams.get("category");
+    const search = searchParams.get("search");
+    const activeOnly = searchParams.get("activeOnly") === "true";
 
     const filter: Record<string, unknown> = {};
     if (category) filter.category = category;
     if (activeOnly) filter.isActive = true;
     if (search) {
       filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+        { name: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
       ];
     }
 
@@ -75,8 +88,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: items });
   } catch (error) {
-    console.error('Get items error:', error);
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+    console.error("Get items error:", error);
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
-

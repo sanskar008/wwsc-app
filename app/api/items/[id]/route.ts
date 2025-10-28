@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import { connectDB } from '@/lib/db';
-import { Item } from '@/lib/models/Item';
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { connectDB } from "@/lib/db";
+import { Item } from "@/lib/models/Item";
 
 const updateItemSchema = z.object({
   name: z.string().min(1).optional(),
@@ -11,7 +11,7 @@ const updateItemSchema = z.object({
   unitPacking: z.string().optional(),
   hsnCode: z.string().optional(),
   gstRate: z.number().min(0).max(100).optional(),
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
 });
 
 export async function GET(
@@ -21,7 +21,10 @@ export async function GET(
   try {
     await connectDB();
   } catch {
-    return NextResponse.json({ success: false, error: 'Database connection failed' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Database connection failed" },
+      { status: 500 }
+    );
   }
 
   try {
@@ -29,12 +32,18 @@ export async function GET(
     const item = await Item.findById(id);
 
     if (!item) {
-      return NextResponse.json({ success: false, error: 'Item not found' }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "Item not found" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json({ success: true, data: item });
-  } catch (error) {
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
@@ -45,7 +54,10 @@ export async function PUT(
   try {
     await connectDB();
   } catch {
-    return NextResponse.json({ success: false, error: 'Database connection failed' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Database connection failed" },
+      { status: 500 }
+    );
   }
 
   try {
@@ -60,15 +72,24 @@ export async function PUT(
     );
 
     if (!item) {
-      return NextResponse.json({ success: false, error: 'Item not found' }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "Item not found" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json({ success: true, data: item });
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ success: false, error: 'Invalid input data', details: error.errors }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Invalid input data", details: error.errors },
+        { status: 400 }
+      );
     }
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
@@ -79,7 +100,10 @@ export async function DELETE(
   try {
     await connectDB();
   } catch {
-    return NextResponse.json({ success: false, error: 'Database connection failed' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Database connection failed" },
+      { status: 500 }
+    );
   }
 
   try {
@@ -87,12 +111,20 @@ export async function DELETE(
     const item = await Item.findByIdAndDelete(id);
 
     if (!item) {
-      return NextResponse.json({ success: false, error: 'Item not found' }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "Item not found" },
+        { status: 404 }
+      );
     }
 
-    return NextResponse.json({ success: true, message: 'Item deleted successfully' });
-  } catch (error) {
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({
+      success: true,
+      message: "Item deleted successfully",
+    });
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
-
