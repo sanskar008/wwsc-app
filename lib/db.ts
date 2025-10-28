@@ -1,6 +1,12 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://admin_user_sanskar:MZRtrazJPTQEad0t@database.ebmp81b.mongodb.net/wwsc-app?retryWrites=true&w=majority&appName=Database';
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  throw new Error(
+    "Please define the MONGODB_URI environment variable inside .env.local"
+  );
+}
 
 interface MongooseCache {
   conn: typeof mongoose | null;
@@ -29,20 +35,23 @@ async function connectDB(): Promise<typeof mongoose> {
       socketTimeoutMS: 45000, // 45 seconds
     };
 
-    cached!.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      console.log('MongoDB connected successfully');
-      return mongoose;
-    }).catch((error) => {
-      console.error('MongoDB connection error:', error);
-      throw error;
-    });
+    cached!.promise = mongoose
+      .connect(MONGODB_URI as string, opts)
+      .then((mongoose) => {
+        console.log("MongoDB connected successfully");
+        return mongoose;
+      })
+      .catch((error) => {
+        console.error("MongoDB connection error:", error);
+        throw error;
+      });
   }
 
   try {
     cached!.conn = await cached!.promise;
   } catch (e) {
     cached!.promise = null;
-    console.error('Failed to connect to MongoDB:', e);
+    console.error("Failed to connect to MongoDB:", e);
     throw e;
   }
 
