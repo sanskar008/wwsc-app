@@ -11,12 +11,13 @@
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "html2canvas": "^1.4.1",
-    "jspdf": "^2.5.1",
     "jsonwebtoken": "^9.0.2",
+    "jspdf": "^2.5.1",
     "mongoose": "^8.0.0",
     "next": "15.5.5",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "xlsx": "^0.18.5",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -27,6 +28,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/xlsx": "^0.0.35",
     "eslint": "^9",
     "eslint-config-next": "15.5.5",
     "tailwindcss": "^4",
