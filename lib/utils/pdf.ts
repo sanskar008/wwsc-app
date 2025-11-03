@@ -249,14 +249,79 @@ export class PDFGenerator {
       "Taxable Amt.",
     ];
 
+    // Helper function to get column center position
+    const getColCenter = (index: number) => 
+      colPositions[index] + colWidths[index] / 2;
+    
+    // Helper function to get column right position (with padding)
+    const getColRight = (index: number, padding: number = 1) => 
+      colPositions[index] + colWidths[index] - padding;
+
     // Draw table header with exact borders
     addRect(leftCol, yPosition, pageWidth - 2 * margin, 8);
     headers.forEach((header, index) => {
-      addText(header, colPositions[index] + 1, yPosition + 5, {
-        fontSize: 8,
-        fontStyle: "bold",
-        align: "center",
-      });
+      // Determine font size based on column width
+      let headerFontSize = 7;
+      if (colWidths[index] < 10) {
+        headerFontSize = 6;
+      } else if (colWidths[index] < 15) {
+        headerFontSize = 7;
+      } else {
+        headerFontSize = 8;
+      }
+      
+      // Split long headers into multiple lines
+      pdf.setFontSize(headerFontSize);
+      pdf.setFont("helvetica", "bold");
+      const textWidth = pdf.getTextWidth(header);
+      const availableWidth = colWidths[index] - 2; // Leave 2mm padding
+      
+      if (textWidth > availableWidth) {
+        // Text is too long, split it
+        let lines: string[] = [];
+        if (index === 1) {
+          // Product Description
+          lines = ["Product", "Description"];
+        } else if (index === 10) {
+          // Taxable Amt.
+          lines = ["Taxable", "Amt."];
+        } else if (header.length > 8) {
+          // Generic split for long headers
+          const words = header.split(" ");
+          if (words.length > 1) {
+            const mid = Math.ceil(words.length / 2);
+            lines = [
+              words.slice(0, mid).join(" "),
+              words.slice(mid).join(" ")
+            ];
+          } else {
+            // Single long word - split by character count
+            const mid = Math.ceil(header.length / 2);
+            lines = [header.substring(0, mid), header.substring(mid)];
+          }
+        } else {
+          lines = [header];
+        }
+        
+        // Draw multi-line header
+        const lineHeight = 3;
+        const startY = yPosition + 2;
+        lines.forEach((line, lineIdx) => {
+          addText(line, getColCenter(index), startY + lineIdx * lineHeight, {
+            fontSize: headerFontSize,
+            fontStyle: "bold",
+            align: "center",
+          });
+        });
+      } else {
+        // Text fits, draw normally
+        addText(header, getColCenter(index), yPosition + 4, {
+          fontSize: headerFontSize,
+          fontStyle: "bold",
+          align: "center",
+        });
+      }
+      
       if (index < headers.length - 1) {
         addLine(
           colPositions[index + 1],
@@ -280,45 +345,56 @@ export class PDFGenerator {
         }
       });
 
-      // Add data with exact alignment
-      addText((index + 1).toString(), colPositions[0] + 4, rowY + 5, {
+      // Add data with proper alignment
+      // Column 0: Sr. No (center)
+      addText((index + 1).toString(), getColCenter(0), rowY + 5, {
         fontSize: 8,
         align: "center",
       });
+      // Column 1: Product Description (left)
       addText(item.name, colPositions[1] + 1, rowY + 5, { fontSize: 8 });
-      addText("30059040", colPositions[2] + 6, rowY + 5, {
+      // Column 2: HSN Code (center)
+      addText("30059040", getColCenter(2), rowY + 5, {
         fontSize: 8,
         align: "center",
       });
-      addText("—", colPositions[3] + 4, rowY + 5, {
+      // Column 3: Unit (center)
+      addText("—", getColCenter(3), rowY + 5, {
         fontSize: 8,
         align: "center",
       });
-      addText("—", colPositions[4] + 5, rowY + 5, {
+      // Column 4: Batch No. (center)
+      addText("—", getColCenter(4), rowY + 5, {
         fontSize: 8,
         align: "center",
       });
-      addText("—", colPositions[5] + 5, rowY + 5, {
+      // Column 5: Mfg. Dt. (center)
+      addText("—", getColCenter(5), rowY + 5, {
         fontSize: 8,
         align: "center",
       });
-      addText("—", colPositions[6] + 5, rowY + 5, {
+      // Column 6: Exp Dt. (center)
+      addText("—", getColCenter(6), rowY + 5, {
         fontSize: 8,
         align: "center",
       });
-      addText(item.quantity.toString(), colPositions[7] + 4, rowY + 5, {
+      // Column 7: Qty (center)
+      addText(item.quantity.toString(), getColCenter(7), rowY + 5, {
         fontSize: 8,
         align: "center",
       });
-      addText("Than", colPositions[8] + 4, rowY + 5, {
+      // Column 8: Per (center)
+      addText("Than", getColCenter(8), rowY + 5, {
         fontSize: 8,
         align: "center",
       });
-      addText(item.unitPrice.toFixed(2), colPositions[9] + 5, rowY + 5, {
+      // Column 9: Rate (center)
+      addText(item.unitPrice.toFixed(2), getColCenter(9), rowY + 5, {
         fontSize: 8,
         align: "center",
       });
-      addText(item.total.toFixed(2), colPositions[10] + 7.5, rowY + 5, {
+      // Column 10: Taxable Amt. (right)
+      addText(item.total.toFixed(2), getColRight(10, 1), rowY + 5, {
         fontSize: 8,
         align: "right",
       });
@@ -347,16 +423,18 @@ export class PDFGenerator {
     addText("GSTIN NO: 27AEJPJ9985J1ZM", leftCol, yPosition + 5, {
       fontSize: 9,
     });
-    addText("Bank Details:", rightCol, yPosition, {
+    // Move bank details more to the left to avoid overlap
+    const bankDetailsX = pageWidth / 2 - 10;
+    addText("Bank Details:", bankDetailsX, yPosition, {
       fontSize: 9,
       fontStyle: "bold",
     });
-    addText("Bank: State Bank of India.", rightCol, yPosition + 5, {
+    addText("Bank: State Bank of India.", bankDetailsX, yPosition + 5, {
       fontSize: 9,
     });
-    addText("Branch: Khamgaon-ADB", rightCol, yPosition + 10, { fontSize: 9 });
-    addText("A/c No.: 3046206532", rightCol, yPosition + 15, { fontSize: 9 });
-    addText("IFS Code: SBIN0003282.", rightCol, yPosition + 20, {
+    addText("Branch: Khamgaon-ADB", bankDetailsX, yPosition + 10, { fontSize: 9 });
+    addText("A/c No.: 3046206532", bankDetailsX, yPosition + 15, { fontSize: 9 });
+    addText("IFS Code: SBIN0003282.", bankDetailsX, yPosition + 20, {
       fontSize: 9,
     });
 
@@ -391,95 +469,100 @@ export class PDFGenerator {
     // Summary Section (Right side) - Exact alignment from image
     const summaryStartY = tableStartY + 20;
     const summaryX = pageWidth - margin - 50;
+    const summaryWidth = 50;
+    const summaryRight = summaryX + summaryWidth;
     let summaryY = summaryStartY;
 
+    // Helper function for summary table right alignment
+    const getSummaryRight = (padding: number = 1) => summaryRight - padding;
+
     // Summary table with exact borders and alignment
-    addRect(summaryX, summaryY, 50, 8);
+    addRect(summaryX, summaryY, summaryWidth, 8);
     addText("Total Amt", summaryX + 2, summaryY + 5, { fontSize: 8 });
-    addText(invoiceData.subtotal.toFixed(2), summaryX + 48, summaryY + 5, {
+    addText(invoiceData.subtotal.toFixed(2), getSummaryRight(), summaryY + 5, {
       fontSize: 8,
       align: "right",
     });
     summaryY += 8;
 
-    addRect(summaryX, summaryY, 50, 8);
+    addRect(summaryX, summaryY, summaryWidth, 8);
     addText(`Add: CGST ${invoiceData.cgstRate}%:`, summaryX + 2, summaryY + 5, {
       fontSize: 8,
     });
     if (invoiceData.transactionType === "intrastate") {
-      addText(invoiceData.cgstAmount.toFixed(2), summaryX + 48, summaryY + 5, {
+      addText(invoiceData.cgstAmount.toFixed(2), getSummaryRight(), summaryY + 5, {
         fontSize: 8,
         align: "right",
       });
     } else {
-      addText("----", summaryX + 48, summaryY + 5, {
+      addText("----", getSummaryRight(), summaryY + 5, {
         fontSize: 8,
         align: "right",
       });
     }
     summaryY += 8;
 
-    addRect(summaryX, summaryY, 50, 8);
+    addRect(summaryX, summaryY, summaryWidth, 8);
     addText(`Add: SGST ${invoiceData.sgstRate}%:`, summaryX + 2, summaryY + 5, {
       fontSize: 8,
     });
     if (invoiceData.transactionType === "intrastate") {
-      addText(invoiceData.sgstAmount.toFixed(2), summaryX + 48, summaryY + 5, {
+      addText(invoiceData.sgstAmount.toFixed(2), getSummaryRight(), summaryY + 5, {
         fontSize: 8,
         align: "right",
       });
     } else {
-      addText("----", summaryX + 48, summaryY + 5, {
+      addText("----", getSummaryRight(), summaryY + 5, {
         fontSize: 8,
         align: "right",
       });
     }
     summaryY += 8;
 
-    addRect(summaryX, summaryY, 50, 8);
+    addRect(summaryX, summaryY, summaryWidth, 8);
     addText(`Add: IGST ${invoiceData.igstRate}%:`, summaryX + 2, summaryY + 5, {
       fontSize: 8,
     });
     if (invoiceData.transactionType === "interstate") {
-      addText(invoiceData.igstAmount.toFixed(2), summaryX + 48, summaryY + 5, {
+      addText(invoiceData.igstAmount.toFixed(2), getSummaryRight(), summaryY + 5, {
         fontSize: 8,
         align: "right",
       });
     } else {
-      addText("----", summaryX + 48, summaryY + 5, {
+      addText("----", getSummaryRight(), summaryY + 5, {
         fontSize: 8,
         align: "right",
       });
     }
     summaryY += 8;
 
-    addRect(summaryX, summaryY, 50, 8);
+    addRect(summaryX, summaryY, summaryWidth, 8);
     addText("Round off", summaryX + 2, summaryY + 5, { fontSize: 8 });
-    addText("0.36", summaryX + 48, summaryY + 5, {
+    addText("0.36", getSummaryRight(), summaryY + 5, {
       fontSize: 8,
       align: "right",
     });
     summaryY += 8;
 
-    addRect(summaryX, summaryY, 50, 8);
+    addRect(summaryX, summaryY, summaryWidth, 8);
     addText("Total Tax Amt. GST", summaryX + 2, summaryY + 5, {
       fontSize: 8,
       fontStyle: "bold",
     });
     addText(
       invoiceData.totalTaxAmount.toFixed(2),
-      summaryX + 48,
+      getSummaryRight(),
       summaryY + 5,
       { fontSize: 8, fontStyle: "bold", align: "right" }
     );
     summaryY += 8;
 
-    addRect(summaryX, summaryY, 50, 8);
+    addRect(summaryX, summaryY, summaryWidth, 8);
     addText("Total Amount After Tax", summaryX + 2, summaryY + 5, {
       fontSize: 8,
       fontStyle: "bold",
     });
-    addText(invoiceData.totalAmount.toFixed(2), summaryX + 48, summaryY + 5, {
+    addText(invoiceData.totalAmount.toFixed(2), getSummaryRight(), summaryY + 5, {
       fontSize: 8,
       fontStyle: "bold",
       align: "right",
@@ -561,19 +644,27 @@ export class PDFGenerator {
       { align: "right" }
     );
     y += 6;
-    addText(
+    // Wrap long address and contact lines
+    const addressMaxWidth = pageWidth - 2 * margin;
+    pdf.setFontSize(8);
+    pdf.setFont("helvetica", "normal");
+    const addressLines = pdf.splitTextToSize(
       "D-15, MIDC, Sutala, Nandura Road, Khamgaon-444303, Buldhana, Maharashtra",
-      margin,
-      y,
-      { fontSize: 8 }
+      addressMaxWidth
     );
-    y += 4;
-    addText(
+    addressLines.forEach((line: string) => {
+      addText(line, margin, y, { fontSize: 8 });
+      y += 4;
+    });
+    
+    const contactLines = pdf.splitTextToSize(
       "Tel: 07263-252115 | Mob: 9820441024 / 9920787117 | Email: worldwide9820@gmail.com",
-      margin,
-      y,
-      { fontSize: 8 }
+      addressMaxWidth
     );
+    contactLines.forEach((line: string) => {
+      addText(line, margin, y, { fontSize: 8 });
+      y += 4;
+    });
     y += 6;
 
     // Title
@@ -601,23 +692,71 @@ export class PDFGenerator {
       addText(quotationData.toDepartment, margin, y);
     }
     if (quotationData.toAddress) {
+      const addressMaxWidth = pageWidth - 2 * margin;
       quotationData.toAddress.split("\n").forEach((l) => {
-        y += 4;
-        addText(l, margin, y);
+        pdf.setFontSize(10);
+        pdf.setFont("helvetica", "normal");
+        const wrappedLines = pdf.splitTextToSize(l, addressMaxWidth);
+        wrappedLines.forEach((line: string) => {
+          y += 4;
+          addText(line, margin, y);
+        });
       });
     }
     y += 6;
 
     if (quotationData.subject) {
-      addText("Subject: " + quotationData.subject, margin, y);
+      const subjectMaxWidth = pageWidth - 2 * margin;
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      const subjectLines = pdf.splitTextToSize(
+        "Subject: " + quotationData.subject,
+        subjectMaxWidth
+      );
+      subjectLines.forEach((line: string, idx: number) => {
+        if (idx > 0) y += 4;
+        addText(line, margin, y);
+      });
       y += 6;
     }
     if (quotationData.referenceLetter) {
-      addText("Reference: " + quotationData.referenceLetter, margin, y);
+      const refMaxWidth = pageWidth - 2 * margin;
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      const refLines = pdf.splitTextToSize(
+        "Reference: " + quotationData.referenceLetter,
+        refMaxWidth
+      );
+      refLines.forEach((line: string, idx: number) => {
+        if (idx > 0) y += 4;
+        addText(line, margin, y);
+      });
       y += 6;
     }
 
     // Items table matching image columns
+    // Adjust widths to fit within page width (pageWidth - 2*margin)
+    const availableWidth = pageWidth - 2 * margin;
+    const totalRequestedWidth = 12 + 80 + 22 + 36 + 30 + 20; // 200mm
+    const scaleFactor = availableWidth / totalRequestedWidth;
+    
+    // Scale widths proportionally to fit page
+    const baseWidths = [12, 80, 22, 36, 30, 20];
+    const widths = baseWidths.map(w => Math.floor(w * scaleFactor));
+    
+    // Ensure total doesn't exceed available width
+    const totalWidth = widths.reduce((sum, w) => sum + w, 0);
+    const adjustment = availableWidth - totalWidth;
+    if (adjustment > 0) {
+      // Add remaining space to the widest column (Name of Drug)
+      widths[1] += adjustment;
+    }
+    
+    const positions = [margin];
+    for (let i = 1; i < widths.length; i++)
+      positions.push(positions[i - 1] + widths[i - 1]);
+
+    // Table headers - Exact alignment
     const headers = [
       "Sr. No",
       "Name of Drug with Specification",
@@ -626,10 +765,12 @@ export class PDFGenerator {
       "Mfg By",
       "MRP",
     ];
-    const widths = [12, 80, 22, 36, 30, 20];
-    const positions = [margin];
-    for (let i = 1; i < widths.length; i++)
-      positions.push(positions[i - 1] + widths[i - 1]);
+
+    // Helper functions for column alignment
+    const getColCenter = (index: number) => 
+      positions[index] + widths[index] / 2;
+    const getColRight = (index: number, padding: number = 1) => 
+      positions[index] + widths[index] - padding;
 
     const drawRow = (h: number, drawCells: (yRow: number) => void) => {
       rect(margin, y, pageWidth - 2 * margin, h);
@@ -641,38 +782,183 @@ export class PDFGenerator {
 
     // Header row
     drawRow(10, (yy) => {
-      headers.forEach((h, i) =>
-        addText(h, positions[i] + 1, yy, { fontSize: 8 })
-      );
+      headers.forEach((h: string, i: number) => {
+        // Determine font size based on column width
+        let headerFontSize = 7;
+        if (widths[i] < 15) {
+          headerFontSize = 6;
+        } else if (widths[i] < 25) {
+          headerFontSize = 7;
+        } else {
+          headerFontSize = 8;
+        }
+        
+        // Split long headers into multiple lines
+        pdf.setFontSize(headerFontSize);
+        pdf.setFont("helvetica", "bold");
+        const textWidth = pdf.getTextWidth(h);
+        const availableWidth = widths[i] - 2; // Leave 2mm padding
+        
+        let lines: string[] = [];
+        if (textWidth > availableWidth || h.length > 12) {
+          // Text is too long, split it
+          if (i === 1) {
+            // Name of Drug with Specification
+            lines = ["Name of Drug", "with Specification"];
+          } else if (i === 3) {
+            // Rate incl. GST as per Unit Packing
+            lines = ["Rate incl. GST", "as per Unit Packing"];
+          } else {
+            // Generic split for long headers
+            const words = h.split(" ");
+            if (words.length > 1) {
+              const mid = Math.ceil(words.length / 2);
+              lines = [
+                words.slice(0, mid).join(" "),
+                words.slice(mid).join(" ")
+              ];
+            } else {
+              // Single long word - split by character count
+              const mid = Math.ceil(h.length / 2);
+              lines = [h.substring(0, mid), h.substring(mid)];
+            }
+          }
+          
+          // Draw multi-line header
+          const lineHeight = 3;
+          const startY = yy - 2;
+          lines.forEach((line, lineIdx) => {
+            if (i === 0) {
+              // Sr. No (center)
+              addText(line, getColCenter(i), startY + lineIdx * lineHeight, {
+                fontSize: headerFontSize,
+                fontStyle: "bold",
+                align: "center",
+              });
+            } else if (i === 1 || i === 2 || i === 4) {
+              // Left aligned
+              addText(line, positions[i] + 1, startY + lineIdx * lineHeight, {
+                fontSize: headerFontSize,
+                fontStyle: "bold",
+              });
+            } else {
+              // Right aligned
+              addText(line, getColRight(i, 1), startY + lineIdx * lineHeight, {
+                fontSize: headerFontSize,
+                fontStyle: "bold",
+                align: "right",
+              });
+            }
+          });
+        } else {
+          // Text fits, draw normally
+          if (i === 0) {
+            // Sr. No (center)
+            addText(h, getColCenter(i), yy, {
+              fontSize: headerFontSize,
+              fontStyle: "bold",
+              align: "center",
+            });
+          } else if (i === 1 || i === 2 || i === 4) {
+            // Left aligned
+            addText(h, positions[i] + 1, yy, {
+              fontSize: headerFontSize,
+              fontStyle: "bold",
+            });
+          } else {
+            // Right aligned
+            addText(h, getColRight(i, 1), yy, {
+              fontSize: headerFontSize,
+              fontStyle: "bold",
+              align: "right",
+            });
+          }
+        }
+      });
     });
 
-    // Body rows
+    // Helper function to wrap text within column width
+    const wrapText = (text: string, maxWidth: number, fontSize: number): string[] => {
+      pdf.setFontSize(fontSize);
+      pdf.setFont("helvetica", "normal");
+      const splitText = pdf.splitTextToSize(text, maxWidth);
+      return splitText;
+    };
+
+    // Body rows with dynamic height based on content
     quotationData.items.forEach((it, idx) => {
-      drawRow(10, (yy) => {
-        addText(String(idx + 1), positions[0] + 2, yy, { fontSize: 9 });
-        addText(
-          it.name + (it.description ? " - " + it.description : ""),
-          positions[1] + 1,
-          yy,
-          { fontSize: 9 }
-        );
-        addText(it.unitPacking || "-", positions[2] + 1, yy, { fontSize: 9 });
+      // Calculate wrapped lines for each column
+      const drugText = it.name + (it.description ? " - " + it.description : "");
+      const drugMaxWidth = widths[1] - 2;
+      const drugLines = wrapText(drugText, drugMaxWidth, 9);
+      
+      const unitText = it.unitPacking || "-";
+      const unitMaxWidth = widths[2] - 2;
+      const unitLines = wrapText(unitText, unitMaxWidth, 9);
+      
+      const mfgText = "M/s Worldwide Surgical Cotton (Khamgaon) Brand - Daksh";
+      const mfgMaxWidth = widths[4] - 2;
+      const mfgLines = wrapText(mfgText, mfgMaxWidth, 8);
+      
+      // Calculate max lines needed for this row
+      const maxLines = Math.max(
+        drugLines.length,
+        unitLines.length,
+        mfgLines.length,
+        1 // At least 1 line
+      );
+      
+      // Calculate row height (minimum 10mm, add 3mm per extra line)
+      const rowHeight = Math.max(10, 7 + (maxLines * 3));
+      
+      drawRow(rowHeight, (yy) => {
+        // Column 0: Sr. No (center) - vertically center if multi-line
+        const srY = maxLines > 1 ? yy + ((maxLines - 1) * 3) / 2 : yy;
+        addText(String(idx + 1), getColCenter(0), srY, { 
+          fontSize: 9,
+          align: "center"
+        });
+        
+        // Column 1: Name of Drug (left) - with text wrapping
+        drugLines.forEach((line, lineIdx) => {
+          addText(
+            line,
+            positions[1] + 1,
+            yy + (lineIdx * 3),
+            { fontSize: 9 }
+          );
+        });
+        
+        // Column 2: Unit Packing (left) - with text wrapping
+        unitLines.forEach((line, lineIdx) => {
+          addText(line, positions[2] + 1, yy + (lineIdx * 3), { fontSize: 9 });
+        });
+        
+        // Column 3: Rate incl. GST (right) - vertically center if multi-line
+        const rateY = maxLines > 1 ? yy + ((maxLines - 1) * 3) / 2 : yy;
         addText(
           it.rateIncludingGST.toFixed(2),
-          positions[3] + widths[3] - 2,
-          yy,
+          getColRight(3, 1),
+          rateY,
           { fontSize: 9, align: "right" }
         );
-        addText(
-          "M/s Worldwide Surgical Cotton (Khamgaon) Brand - Daksh",
-          positions[4] + 1,
-          yy,
-          { fontSize: 8 }
-        );
+        
+        // Column 4: Mfg By (left) - with text wrapping
+        mfgLines.forEach((line, lineIdx) => {
+          addText(
+            line,
+            positions[4] + 1,
+            yy + (lineIdx * 3),
+            { fontSize: 8 }
+          );
+        });
+        
+        // Column 5: MRP (right) - vertically center if multi-line
+        const mrpY = maxLines > 1 ? yy + ((maxLines - 1) * 3) / 2 : yy;
         addText(
           it.mrp ? it.mrp.toFixed(2) : "-",
-          positions[5] + widths[5] - 2,
-          yy,
+          getColRight(5, 1),
+          mrpY,
           { fontSize: 9, align: "right" }
         );
       });
@@ -680,8 +966,8 @@ export class PDFGenerator {
 
     // Total
     drawRow(10, (yy) => {
-      addText("Total", positions[0] + 2, yy, { fontStyle: "bold" });
-      addText(quotationData.subtotal.toFixed(2), pageWidth - margin - 2, yy, {
+      addText("Total", positions[0] + 1, yy, { fontStyle: "bold" });
+      addText(quotationData.subtotal.toFixed(2), getColRight(5, 1), yy, {
         align: "right",
         fontStyle: "bold",
       });
